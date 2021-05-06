@@ -62,7 +62,7 @@ func (no *Node) addEventLog(msg, status string) {
 }
 
 // sorts the logs of each nodes in a cluster
-func sortLamportEventLog(logs ...*eventLog) {
+func sortLamportEventLog(logs ...[]*eventLog) *[]eventLog {
 
 	for i, l := range no.log {
 
