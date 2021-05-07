@@ -16,6 +16,27 @@ type Node struct {
 	log    []eventLog
 }
 
+func New(id string, cl Clock) *Node {
+	return &Node{
+		Clock:  cl,
+		id:     id,
+		status: true,
+		c:      make(chan int),
+		buf:    bytes.NewBuffer(nil),
+	}
+}
+
+type Cluster struct {
+	nodes []*Node
+}
+
+func NewCluster(clock func() Clock, id ...string) *Cluster {
+	cl := &Cluster{}
+	for _, id := range ids {
+		cl.nodes = append(cl.nodes, NewNode(id, clock()))
+	}
+}
+
 // TODO: every node having a log of events will actually be a cool thing.
 // So we can just go through the logs of each node and see if there's actual
 // eventual consistency going on instead of just comparing the final clocks because
@@ -34,10 +55,6 @@ var (
 	errSystemDown    = errors.New("system is down")
 	internalEventMsg = "internal server event"
 )
-
-func New(name string, cl Clock) *Node {
-	return &Node{Clock: cl, id: name, status: true, c: make(chan int), buf: bytes.NewBuffer(nil)}
-}
 
 // simulates a system fault
 func (no *Node) changeStatus(b bool) { no.status = b }
@@ -84,10 +101,6 @@ func sortLamportLog(dlog []eventLog) {
 		}
 	}
 }
-
-//func (no *Node) serializeLog() {
-//
-//}
 
 // read data from node
 func (no *Node) Read(p []byte) (n int, err error) {
