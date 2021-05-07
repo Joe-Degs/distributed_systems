@@ -52,6 +52,8 @@ type LamportClock struct {
 	N int
 }
 
+func NewLamportClock() *LamportClock { return &Lamport{} }
+
 func lamportMax(n int, j interface{}) int {
 	if n > j.(int) {
 		return n
