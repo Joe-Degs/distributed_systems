@@ -61,7 +61,7 @@ func (l *LamportClock) max(j interface{}) int {
 	return j.(int)
 }
 
-// return clock value or time
+// return current timestamp in the system
 func (l *LamportClock) Get() interface{} { return l.val }
 
 // increase the value of clock
