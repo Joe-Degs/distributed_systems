@@ -16,7 +16,7 @@ type Node struct {
 	log    []eventLog
 }
 
-func New(id string, cl Clock) *Node {
+func NewNode(id string, cl Clock) *Node {
 	return &Node{
 		Clock:  cl,
 		id:     id,
@@ -27,14 +27,16 @@ func New(id string, cl Clock) *Node {
 }
 
 type Cluster struct {
-	nodes []*Node
+	nodes map[string]*Node
+	dlog  []eventLog
 }
 
-func NewCluster(clock func() Clock, id ...string) *Cluster {
-	cl := &Cluster{}
+func NewCluster(clock func() Clock, ids ...string) *Cluster {
+	cl := &Cluster{nodes: make(map[string]*Node)}
 	for _, id := range ids {
-		cl.nodes = append(cl.nodes, NewNode(id, clock()))
+		cl.nodes[id] = NewNode(id, clock())
 	}
+	return cl
 }
 
 // TODO: every node having a log of events will actually be a cool thing.
@@ -47,7 +49,7 @@ func NewCluster(clock func() Clock, id ...string) *Cluster {
 type eventLog struct {
 	nodeId    string
 	msg       string
-	status    string // status is -> internal, send, recieve
+	status    string
 	timestamp interface{}
 }
 
@@ -62,7 +64,9 @@ func (no *Node) changeStatus(b bool) { no.status = b }
 // increment the clock to simulate some kind of event generation and record in log.
 func (no *Node) genInternalEvent() {
 	no.Increment()
-	no.addEventLog(internalEventMsg, "internal")
+	no.genEvent(
+		fmt.Sprintf("[nodeId -> %s] [msg -> process related event] [timestamp -> %v] [event_type -> internal]",
+			no.id, no.Get()), "internal")
 }
 
 func (no *Node) genEvent(msg, stat string) { no.addEventLog(msg, stat) }
@@ -84,6 +88,20 @@ func appendEventLogs(logs ...[]eventLog) []eventLog {
 		dlog = append(dlog, log...)
 	}
 	return dlog
+}
+
+// consolidates all logs in the cluster and sort them based on the
+// happens before lamport relationship
+func (cl *Cluster) appendLogs() {
+	for _, value := range cl.nodes {
+		cl.dlog = append(cl.dlog, value.log...)
+	}
+	//sortLamportLog(cl.dlog)
+}
+
+func (cl *Cluster) appendSortLogs() {
+	cl.appendLogs()
+	sortLamportLog(cl.dlog)
 }
 
 // bubble sort to bubble things up
@@ -135,7 +153,7 @@ func (no *Node) send(msg string, r *Node) {
 
 	// increment clock before sends.
 	no.Increment()
-	no.genEvent(fmt.Sprintf("(nodeId, %s) (msg, %s)", no.id, msg), "send")
+	no.genEvent(fmt.Sprintf("[nodeId -> %s] [msg -> %s] [timestamp -> %v] [event_type -> send]", no.id, msg, no.Get()), "send")
 
 	r.c <- 1 // new message alert to remote host
 	<-no.c   // wait for the remote host to finish reading new msg
@@ -159,7 +177,8 @@ func (no *Node) recv(r *Node) {
 			return
 		}
 		no.Merge(r.Clock)
-		no.genEvent(fmt.Sprintf("(nodeId, %s) (msg, %s)", no.id, string(b)), "recv")
+		no.genEvent(fmt.Sprintf("[nodeId -> %s] [msg -> %s] [timestamp -> %v] [event_type -> recv]",
+			no.id, string(b), r.Get()), "recv")
 		r.c <- 1
 		return
 	}
