@@ -6,7 +6,7 @@ I have a special interest in internet and cloud/edge infrastructure and how they
 
 For the basics and theories, i'm watching bunch of courses on youtube and reading tons of blog posts on the subject and whitepapers? i am knee deep in alot of them. And i use golng to build the projects.
 
-####Resources i'm using
+#### Resources i'm using
 * [Chris Colohan's course on youtube](https://www.youtube.com/playlist?list=PLOE1GTZ5ouRPbpTnrZ3Wqjamfwn_Q5Y9A)
 * [course website](http://www.distributedsystemscourse.com/)
 
