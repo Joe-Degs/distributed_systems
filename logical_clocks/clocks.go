@@ -49,32 +49,32 @@ type Clock interface {
 // based on their lamport clocks.
 // also my english sucks bad.
 type LamportClock struct {
-	N int
+	val int
 }
 
-func NewLamportClock() *LamportClock { return &Lamport{} }
+func NewLamportClock() Clock { return &LamportClock{} }
 
-func lamportMax(n int, j interface{}) int {
-	if n > j.(int) {
-		return n
+func (l *LamportClock) max(j interface{}) int {
+	if l.val >= j.(int) {
+		return l.val
 	}
 	return j.(int)
 }
 
 // return clock value or time
-func (l *LamportClock) Get() interface{} { return l.N }
+func (l *LamportClock) Get() interface{} { return l.val }
 
 // increase the value of clock
-func (l *LamportClock) Increment() { l.N += 1 }
+func (l *LamportClock) Increment() { l.val += 1 }
 
 // update the clock based on some recieved event
 func (l *LamportClock) Merge(cl Clock) {
-	l.N = lamportMax(l.N, cl.Get()) + 1
+	l.val = l.max(cl.Get()) + 1
 }
 
-// checks the clocks to see which event
+// checks the clock values to see which event happened first
 func (l *LamportClock) HappensBefore(time interface{}) bool {
-	if l.Get().(int) <= time.(int) {
+	if l.val <= time.(int) {
 		return true
 	}
 	return false
@@ -83,9 +83,9 @@ func (l *LamportClock) HappensBefore(time interface{}) bool {
 // VectorClocks are a shift from the lamport clocks that do not characterize
 //
 type VectorClock struct {
-	Value map[string]int
+	val map[string]int
 }
 
-func NewVectorClock() *VectorClock {
-	return &VectorClock{Value: make(map[string]int)}
-}
+//func NewVectorClock() Clock {
+//	return &VectorClock{Val: make(map[string]int)}
+//}
