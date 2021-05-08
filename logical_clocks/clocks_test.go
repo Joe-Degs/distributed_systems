@@ -122,8 +122,11 @@ func TestLamportClockTransitiveClosure(t *testing.T) {
 }
 
 // Lamport clock is a very cool concept, but it has been proven not
-// to work in real world systems.
-func TestProveLamportWrong(t *testing.T) {
+// to work in real world systems because even though lamport clocks are
+// consistent with causality, they do not characterize causality.
+// In view of this if A -> B then the LC(A) <= LC(B) but we cannot say
+// for sure that if LC(A) <= LC(B) then A -> B
+func TestRandomBehaviourInClusterWithLamportClock(t *testing.T) {
 	var wg sync.WaitGroup
 	cl := NewCluster(NewLamportClock, "a", "b", "c", "d", "e", "f", "g", "h", "i", "j")
 
