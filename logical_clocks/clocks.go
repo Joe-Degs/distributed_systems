@@ -32,21 +32,26 @@ type Clock interface {
 // 4. A is a send operation and B is the corresponding recieve
 // 5. if A -> B and B -> C then A -> B(transitive closure) is likely to be true
 
-// Lamport Clocks help in the ordering of events in our systems with the following
+// Clocks help in the ordering of events in our systems with the following
 // sequences. The assumption is you have your systems wired to communicate.
 // And all the nodes in the systems are keeping some kind of integer counter as
 // the their clock
+
 // -> If you generate an event in your system, increase your clock by 1
 // -> If you send a message, add your clock to the message
 // -> If you recieve a message, take max of the sender's clock value and your
 //    clock value and increase by 1 and thats your clock value
+
+// Lamport clocks have the following relation A -> B => LC(A) <= LC(B)
+// meaning if A happens before B then the lamport clock of A is less than or equal
+// to that of B but it doesnt work the other way round.
 // Lamport clocks is a very cool concept all that, but here's the catch, in real
 // world systems if two independent systems that have broken connection and
 // are not communicating but generating events internally finally get back
 // communicating, comparing their clocks will show that some events happened
 // before some and vice versa but that will be erroneous because those events
 // are not causally connected per our definition of what makes events connected
-// based on their lamport clocks.
+// based on their clocks.
 // also my english sucks bad.
 type LamportClock struct {
 	val int
@@ -80,12 +85,64 @@ func (l *LamportClock) HappensBefore(time interface{}) bool {
 	return false
 }
 
-// VectorClocks are a shift from the lamport clocks that do not characterize
-//
+// VectorClocks are just a sequence of integers that represent the clock
+// value of all other nodes in the systems. This is an upgrade from lamport
+// clocks because nodes keep not only their clock but that of every other node
+// in the system. Vector Clocks are better than lamport clocks in that they not
+// only characterize causality but are also consistent with causality.
+// This relation can be stated as A -> B <=> VC(A) <= VC(B).
+// It implies that if A happens before B then the vector clock of A is less than
+// or equal to the vector clock of B but also if the vector clock of A is less than
+// or equal to that B we know that A happens before B
 type VectorClock struct {
 	val map[string]int
 }
 
-//func NewVectorClock() Clock {
-//	return &VectorClock{Val: make(map[string]int)}
-//}
+// in vector clocks, every node must have an entry in their clock
+// that corresponds to the last known clock value of every other node
+// in the system.
+//
+// so the question is how do you join the cluster. what if there are multiple
+// clusters and they are merged together.
+// If you join a cluster you should announce your presence so your clock gets merged
+// in all the others clocks
+//
+// this is going to be harder than i thought it.
+//
+// First things first. when you join the cluster. you get the last know clock value
+// of every single node in the cluster.
+//
+// On sends, you increment your own value in the list and sends it out with the message.
+//
+// On recieve, the reciever node compares its clock with that of the sender nodes
+// finding the max of the two, it proceeds to increment the clock.
+// recieves are peculiar because, how do you know which of the clocks are bigger when
+// comparing?. you use the pointwise maximum i.e comparing every single index point with
+// the corresponding one in the other clock.
+// so for every index point 'i', VC(A) < VC(B) if VC(A)i <= VC(B) and VC(A) != VC(B)
+//
+// On internal events, a node increments just its clock value. and continues living life.
+
+func NewVectorClock() Clock {
+	return &VectorClock{val: make(map[string]int)}
+}
+
+func (vc *VectorClock) String() string {
+	return ""
+}
+
+func (vc *VectorClock) Get() interface{} {
+	return nil
+}
+
+func (vc *VectorClock) Increment() {
+	return
+}
+
+func (vc *VectorClock) Merge(Clock) {
+	return
+}
+
+func (vc *VectorClock) HappensBefore(interface{}) bool {
+	return false
+}

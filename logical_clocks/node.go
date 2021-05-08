@@ -7,6 +7,7 @@ import (
 	"time"
 )
 
+// Node represents a single actor in a distributed system
 type Node struct {
 	Clock
 	id     string
@@ -26,6 +27,7 @@ func NewNode(id string, cl Clock) *Node {
 	}
 }
 
+// Cluster represents groups of nodes communicating
 type Cluster struct {
 	nodes map[string]*Node
 	dlog  []eventLog
@@ -166,6 +168,7 @@ func (no *Node) recv(r *Node) {
 		// abort if system is down
 		if !no.status {
 			no.buf.Reset()
+			r.c <- 1
 			return
 		}
 		time.Sleep(time.Millisecond * 70) // simulate network latency
