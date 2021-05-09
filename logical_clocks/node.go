@@ -27,21 +27,11 @@ func NewNode(id string, cl Clock) *Node {
 	}
 }
 
-// Cluster represents groups of nodes communicating
-type Cluster struct {
-	nodes map[string]*Node
-	dlog  []eventLog
-}
+// if you join a cluster, you have to announce your presence.
+// this gets you up to date with the clock in the system.
+// it makes others aware of your id and your last known timestamp too.
 
-func NewCluster(clock func() Clock, ids ...string) *Cluster {
-	cl := &Cluster{nodes: make(map[string]*Node)}
-	for _, id := range ids {
-		cl.nodes[id] = NewNode(id, clock())
-	}
-	return cl
-}
-
-// TODO: every node having a log of events will actually be a cool thing.
+// every node having a log of events will actually be a cool thing.
 // So we can just go through the logs of each node and see if there's actual
 // eventual consistency going on instead of just comparing the final clocks because
 // the goal is to actually arrive at a solution that guarantee eventual consistency
@@ -90,20 +80,6 @@ func appendEventLogs(logs ...[]eventLog) []eventLog {
 		dlog = append(dlog, log...)
 	}
 	return dlog
-}
-
-// consolidates all logs in the cluster and sort them based on the
-// happens before lamport relationship
-func (cl *Cluster) appendLogs() {
-	for _, value := range cl.nodes {
-		cl.dlog = append(cl.dlog, value.log...)
-	}
-	//sortLamportLog(cl.dlog)
-}
-
-func (cl *Cluster) appendSortLogs() {
-	cl.appendLogs()
-	sortLamportLog(cl.dlog)
 }
 
 // bubble sort to bubble things up
