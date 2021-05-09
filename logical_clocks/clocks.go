@@ -1,5 +1,10 @@
 package clocks
 
+import (
+	"fmt"
+	"strings"
+)
+
 // This package implements bunch of logical clocks i'm learning about
 // as part of a distributed systems course. Clocks help in ordering events
 // in systems and keeping order is a very important topic in distributed systems.
@@ -22,7 +27,8 @@ type Clock interface {
 	Get() interface{} // returns the current value of the clock
 	Increment()       // increases the value of the clock
 	Merge(Clock)      // finds the max of clock values and increments
-	HappensBefore(interface{}) bool
+	HappensBefore(Clock) bool
+	String() string
 }
 
 // Couple of assumptions we can make from A -> B is that
@@ -59,6 +65,10 @@ type LamportClock struct {
 
 func NewLamportClock() Clock { return &LamportClock{} }
 
+func (l *LamportClock) String() string {
+	return fmt.Sprintf("%d", l.val)
+}
+
 func (l *LamportClock) max(j interface{}) int {
 	if l.val >= j.(int) {
 		return l.val
@@ -70,7 +80,7 @@ func (l *LamportClock) max(j interface{}) int {
 func (l *LamportClock) Get() interface{} { return l.val }
 
 // increase the value of clock
-func (l *LamportClock) Increment() { l.val += 1 }
+func (l *LamportClock) Increment() { l.val++ }
 
 // update the clock based on some recieved event
 func (l *LamportClock) Merge(cl Clock) {
@@ -78,8 +88,8 @@ func (l *LamportClock) Merge(cl Clock) {
 }
 
 // checks the clock values to see which event happened first
-func (l *LamportClock) HappensBefore(time interface{}) bool {
-	if l.val <= time.(int) {
+func (l *LamportClock) HappensBefore(cl Clock) bool {
+	if l.val <= cl.Get().(int) {
 		return true
 	}
 	return false
@@ -96,6 +106,7 @@ func (l *LamportClock) HappensBefore(time interface{}) bool {
 // or equal to that B we know that A happens before B
 type VectorClock struct {
 	val map[string]int
+	id  string // keep track of nodes entry in the clock.
 }
 
 // in vector clocks, every node must have an entry in their clock
@@ -127,22 +138,74 @@ func NewVectorClock() Clock {
 	return &VectorClock{val: make(map[string]int)}
 }
 
+// keeps track of clocks id in vector.
+func (vc *VectorClock) registerId(id string) {
+	vc.val[id] = 0
+	vc.id = id
+}
+
+func (vc *VectorClock) addMember(id string) {
+	vc.val[id] = 0
+}
+
 func (vc *VectorClock) String() string {
-	return ""
+	return strings.Split(fmt.Sprintf("%v", vc.val), "p")[1]
 }
 
 func (vc *VectorClock) Get() interface{} {
-	return nil
+	return vc.val
 }
 
 func (vc *VectorClock) Increment() {
-	return
+	vc.val[vc.id]++
 }
 
-func (vc *VectorClock) Merge(Clock) {
-	return
+// Merge finds the max of two vectors and increments
+// the owner of the clocks position in the vector.
+func (vc *VectorClock) Merge(cl Clock) {
+
+	// get a set of keys of the two clocks
+	keys := make(map[string]struct{})
+	for key, _ := range vc.val {
+		keys[key] = struct{}{}
+	}
+
+	m := cl.Get().(map[string]int)
+
+	for key, _ := range m {
+		_, ok := keys[key]
+		if !ok {
+			keys[key] = struct{}{}
+		}
+	}
+
+	for id, _ := range keys {
+		if vc.val[id] < m[id] {
+			vc.val[id] = m[id]
+		}
+	}
+	vc.Increment()
 }
 
-func (vc *VectorClock) HappensBefore(interface{}) bool {
-	return false
+// checks to see if the clocks timestamp happens before its own
+// using the following rule
+// VC(A) < VC(B) if VC(A)i <= VC(B)i for all i and VC(A) != VC(B)
+func (vc *VectorClock) HappensBefore(cl Clock) bool {
+	if fmt.Sprint(vc) == fmt.Sprint(cl) {
+		return false
+	}
+	return lessThan(vc.val, cl.Get().(map[string]int))
+}
+
+// compares two vector clocks and returns true if a < b
+func lessThan(a, b map[string]int) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for k, v := range a {
+		if v > b[k] {
+			return false
+		}
+	}
+	return true
 }
