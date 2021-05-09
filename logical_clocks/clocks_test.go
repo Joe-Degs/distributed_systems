@@ -19,7 +19,7 @@ func TestLamportMerge(t *testing.T) {
 	A, B := &LamportClock{}, &LamportClock{}
 	A.val, B.val = 4, 5
 	A.Merge(B) // A's clock is now max(4, 5) + 1
-	if !B.HappensBefore(A.val) {
+	if !B.HappensBefore(A) {
 		t.Errorf("expected tsB(%d) <= tsA(%d)\n", B.val, A.val)
 	}
 }
@@ -73,7 +73,7 @@ func TestLamportClockSameProcess(t *testing.T) {
 	ts1 := A.Get()
 	A.genInternalEvent()
 
-	if A.HappensBefore(ts1) {
+	if A.Get().(int) <= ts1.(int) {
 		t.Errorf("lamport clocks error: expected %q <= %q\n", ts1, A.Get())
 	}
 }
@@ -86,7 +86,7 @@ func TestLamportClockWithSendAndRecv(t *testing.T) {
 	A.send(fmt.Sprintf("message from node %s, timestamp at send %d", A.id, A.Get().(int)), B)
 	tsA := A.Get().(int)
 
-	if B.HappensBefore(tsA) {
+	if B.Get().(int) <= tsA {
 		t.Errorf("expected tsA(%d) <= tsB(%d)", tsA, B.Get().(int))
 	}
 }
@@ -185,5 +185,50 @@ func TestRandomBehaviourInClusterWithLamportClock(t *testing.T) {
 	for _, log := range cl.dlog {
 		t.Log(log.msg)
 		fmt.Println("")
+	}
+}
+
+func TestVectorClockIncrement(t *testing.T) {
+	v := &VectorClock{val: make(map[string]int)}
+	v.id = "a"
+	v.Increment()
+	t.Log(v)
+}
+
+func TestVectorClockMerge(t *testing.T) {
+	cl := NewVectorClock()
+	cl.(*VectorClock).registerId("e")
+	vc := &VectorClock{val: make(map[string]int)}
+	vc.val["a"] = 2
+	vc.val["b"] = 3
+	vc.val["d"] = 1
+	cl.Merge(vc)
+	t.Log(cl)
+}
+
+func TestVectorClockHappensBefore(t *testing.T) {
+	// a = [2,2,0] and b = [3,2,0]
+	a, b := &VectorClock{val: make(map[string]int)}, &VectorClock{val: make(map[string]int)}
+	a.registerId("a")
+	b.registerId("b")
+
+	a.val["a"] = 0
+	a.val["b"] = 1
+	a.val["c"] = 1
+
+	b.val["a"] = 0
+	b.val["b"] = 2
+	b.val["c"] = 1
+
+	if !a.HappensBefore(b) {
+		t.Errorf("expected a to happen before b")
+	}
+}
+
+func TestVectorClockCluster(t *testing.T) {
+	cluster := NewCluster(NewVectorClock, "alice", "bob", "carol")
+
+	for _, node := range cluster.nodes {
+		t.Log(node.Clock)
 	}
 }
