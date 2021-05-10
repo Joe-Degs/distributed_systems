@@ -229,6 +229,26 @@ func TestVectorClockCluster(t *testing.T) {
 	cluster := NewCluster(NewVectorClock, "alice", "bob", "carol")
 
 	for _, node := range cluster.nodes {
-		t.Log(node.Clock)
+		for id, _ := range node.Clock.Get().(map[string]int) {
+			if id != "alice" && id != "bob" && id != "carol" {
+				t.Errorf("expected all of this ids to be present: alice, bob and carol")
+			}
+		}
+	}
+}
+
+func TestVectorClockCausalRelationships(t *testing.T) {
+	vA, vB := &VectorClock{val: make(map[string]int)}, &VectorClock{val: make(map[string]int)}
+
+	vA.val["a"] = 2
+	vA.val["b"] = 2
+	vA.val["c"] = 0
+
+	vB.val["a"] = 1
+	vB.val["b"] = 2
+	vB.val["c"] = 3
+
+	if vA.getCausalRelation(vB) != "concurrent" {
+		t.Errorf("event should be concurrent")
 	}
 }

@@ -209,3 +209,25 @@ func lessThan(a, b map[string]int) bool {
 	}
 	return true
 }
+
+// The point of most of the stuff implemented here it to find
+// causal relationships between events happenning on distributed nodes
+// communicating over unreliable networks. And thats one of the big problems
+// in distributed systems design finding causal relationships between events
+// independently executing nodes.
+// With vector clocks, so long as nodes keep on communicating and exchanging
+// clocks and timestamps of events, we are guaranteed to know
+// if an event A -> B or if A || B.
+func (vc *VectorClock) getCausalRelation(other Clock) string {
+	// three of the following values must be returned.
+	// happens-before, concurrent, unknown
+	m := other.Get().(map[string]int)
+	if lessThan(vc.val, m) || lessThan(vc.val, m) {
+		return "happens-before"
+	}
+
+	if !lessThan(vc.val, m) && !lessThan(m, vc.val) {
+		return "concurrent"
+	}
+	return "unknown"
+}

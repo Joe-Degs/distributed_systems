@@ -1,5 +1,7 @@
 package clocks
 
+import "fmt"
+
 // Cluster represents groups of nodes communicating
 type Cluster struct {
 	nodes map[string]*Node
@@ -59,5 +61,10 @@ func (cl *Cluster) appendSortLogs() {
 }
 
 func (cl *Cluster) Send(from, to, msg string) error {
+	sender, recipient := cl.Get(from), cl.Get(to)
+	if sender == nil || recipient == nil {
+		return fmt.Errorf("node ids not in cluster: %s, %s", from, to)
+	}
+	sender.send(msg, recipient)
 	return nil
 }
