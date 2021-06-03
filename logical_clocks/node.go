@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"time"
 )
 
@@ -138,7 +139,6 @@ func (no *Node) send(msg string, r *Node) {
 }
 
 func (no *Node) recv(r *Node) {
-	fmt.Println()
 	select {
 	case <-no.c:
 		// abort if system is down
@@ -148,8 +148,8 @@ func (no *Node) recv(r *Node) {
 			return
 		}
 		time.Sleep(time.Millisecond * 70) // simulate network latency
-		b := make([]byte, 100)
-		_, err := no.Read(b)
+		//b := make([]byte, 0, 100)
+		b, err := io.ReadAll(no)
 		if err != nil {
 			fmt.Errorf("recv error: (nodeId, %s) %v\n", no.id, err)
 			no.buf.Reset()
