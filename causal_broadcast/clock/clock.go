@@ -1,7 +1,4 @@
-// Package clock implements a send only vector clock.
-// This clock does not increment on merges(recieves). It only
-// increments when its increment method is called.
-// will be useful for my distributed system series.
+// Package clock implements an increment on send events only clock.
 package clock
 
 import (
@@ -42,8 +39,8 @@ func (v *Vector) Increment() {
 	v.val[v.id]++
 }
 
-// Merge consolidates two clocks, keeping the highest
-// values in the clocks
+// Merge compares two clocks, keeping the highest values
+// at each point in the clock.
 func (v *Vector) Merge(vc *Vector) {
 	for k, val := range vc.val {
 		// if reciever has not seen this (id, value)
