@@ -68,13 +68,32 @@ func TestEventLogJson(t *testing.T) {
 }
 
 func TestEventQueue(t *testing.T) {
-	queue := &EventQueue{
-		q: make([]*EventLog, 2),
+	tt := []struct {
+		name string
+		q    *EventQueue
+		logs []*EventLog
+	}{
+		{
+			name: "queue of length 2",
+			q:    &EventQueue{q: make([]*EventLog, 2)},
+			logs: []*EventLog{&EventLog{Id: "joe"}, &EventLog{Id: "jude"}},
+		},
+		{
+			name: "test reading till end",
+			q:    &EventQueue{q: make([]*EventLog, 4)},
+			logs: []*EventLog{&EventLog{Id: "joe"}, &EventLog{Id: "jude"}},
+		},
 	}
 
-	tc := []struct{ name string, logs []*EventLog }{{
-		name: "queue of length 2",
-		logs: []*EventLog{ &EventLog{Id: "joe"}, &EventLog{Id: "jude"} },
-		},
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			for i, log := range tc.logs {
+				tc.q.Append(log)
+				if i == len(tc.q.q)-1 && tc.q.stop != true {
+					t.Error("Queue must stop accepting elements if its full and complete reads")
+				}
+			}
+			// spew.Dump(tc)
+		})
 	}
 }
