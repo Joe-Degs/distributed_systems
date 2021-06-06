@@ -85,7 +85,7 @@ func TestEventQueue(t *testing.T) {
 		},
 	}
 
-	for _, tc := range tt {
+	for tn, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			for i, log := range tc.logs {
 				tc.q.Append(log)
@@ -93,7 +93,12 @@ func TestEventQueue(t *testing.T) {
 					t.Error("Queue must stop accepting elements if its full and complete reads")
 				}
 			}
-			// spew.Dump(tc)
+			if tn == 0 {
+				r := tc.q.Append(tc.logs[0])
+				if !r {
+					t.Errror("Can't add to a full queue, read first")
+				}
+			}
 		})
 	}
 }
