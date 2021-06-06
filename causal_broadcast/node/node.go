@@ -73,6 +73,7 @@ func Unmarshal(b []byte) (*EventLog, error) {
 // delivered to node due to causal anomalies.
 type EventQueue struct {
 	next, idx int
+	stop      bool
 	q         []*EventLog
 	buf       *EventLog
 }
@@ -81,41 +82,32 @@ type EventQueue struct {
 func (eq *EventQueue) Append(e *EventLog) bool {
 	if eq.q == nil {
 		eq.q = make([]*EventLog, 10)
-	}
-
-	// if at the end of the queue
-	// check if theres nobody there and accept somebody.
-	// if theres somebody check and its different from the person already there
-	qlen := len(eq.q) - 1
-	if eq.idx == qlen && eq.next != qlen {
-		if eq.q[eq.idx] == nil {
-			eq.q[eq.idx] = e
-			return false
-		} else if eq.q[eq.idx] != e {
-			return false
-		}
+	} else if eq.stop {
+		return false
 	}
 	eq.q[eq.idx] = e
+	if eq.idx == len(eq.q)-1 {
+		eq.stop = true
+		return false
+	}
 	eq.idx = (eq.idx + 1) % len(eq.q)
 	return true
 }
 
 func (eq *EventQueue) reset() {
+	eq.stop = false
 	eq.idx = (eq.idx + 1) % len(eq.q)
 }
 
+// Next returns the next element in the queue.
 func (eq *EventQueue) Next() (*EventLog, bool) {
 	eq.buf = eq.q[eq.next]
-
-	// reset queue if all items have been read.
-	qlen := len(eq.q) - 1
-	if eq.next == qlen && eq.idx == qlen {
+	if eq.next == len(eq.q)-1 {
 		eq.reset()
 	}
-	if eq.buf == nil {
+	if eq.next == eq.idx {
 		return nil, false
 	}
-
 	eq.next = (eq.next + 1) % len(eq.q)
 	return eq.buf, true
 }

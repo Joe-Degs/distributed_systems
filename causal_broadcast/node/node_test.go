@@ -68,5 +68,13 @@ func TestEventLogJson(t *testing.T) {
 }
 
 func TestEventQueue(t *testing.T) {
-	return
+	queue := &EventQueue{
+		q: make([]*EventLog, 2),
+	}
+
+	tc := []struct{ name string, logs []*EventLog }{{
+		name: "queue of length 2",
+		logs: []*EventLog{ &EventLog{Id: "joe"}, &EventLog{Id: "jude"} },
+		},
+	}
 }
