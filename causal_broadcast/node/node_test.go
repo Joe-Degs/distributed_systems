@@ -96,7 +96,7 @@ func TestEventQueue(t *testing.T) {
 			if tn == 0 {
 				r := tc.q.Append(tc.logs[0])
 				if !r {
-					t.Errror("Can't add to a full queue, read first")
+					t.Error("Can't add to a full queue, read first")
 				}
 			}
 		})

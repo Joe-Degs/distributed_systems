@@ -20,8 +20,12 @@ func New(id string) *Vector {
 }
 
 // AddMember add new member to clock group
-func (v *Vector) AddMember(id string) {
-	v.val[id] = 0
+func (v *Vector) AddMember(id string, val int) {
+	v.val[id] = val
+}
+
+func (v *Vector) GetId() string {
+	return v.id
 }
 
 // String returns a nicely formatted string of clocks value
