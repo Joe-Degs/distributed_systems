@@ -43,6 +43,11 @@ func (v *Vector) Increment() {
 	v.val[v.id]++
 }
 
+// Decrement
+func (v *Vector) Decrement() {
+	v.val[v.id]--
+}
+
 // Merge compares two clocks, keeping the highest values
 // at each point in the clock.
 func (v *Vector) Merge(vc *Vector) {

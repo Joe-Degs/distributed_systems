@@ -15,7 +15,7 @@ func (c *clocks) announce(idx int, id string) {
 		if index == idx {
 			continue
 		}
-		cl.AddMember(id)
+		cl.AddMember(id, 0)
 	}
 }
 
@@ -54,8 +54,8 @@ func TestAddMember(t *testing.T) {
 	// add new member to the clock group.
 	a := newClauster.get("a")
 	a.Increment()
-	a.AddMember("d")
-	a.AddMember("e")
+	a.AddMember("d", 0)
+	a.AddMember("e", 0)
 
 	// merge two events and see what happens
 	newClauster.get("c").Merge(a)
