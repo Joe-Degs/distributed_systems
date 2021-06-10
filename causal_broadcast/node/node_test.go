@@ -3,6 +3,8 @@ package node
 import (
 	"reflect"
 	"testing"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 func TestNewNode(t *testing.T) {
@@ -16,7 +18,7 @@ func TestNewNode(t *testing.T) {
 func TestTimestampConversions(t *testing.T) {
 	n := New("jude")
 	n.Clock.AddMember("joe", 0)
-	e := &EventLog{
+	e := &Event{
 		Id:        "joe",
 		Timestamp: n.Clock.String(),
 		Msg:       "message",
@@ -31,11 +33,11 @@ func TestTimestampConversions(t *testing.T) {
 	t.Log(cl.String())
 }
 
-func TestEventLogJson(t *testing.T) {
+func TestEventJson(t *testing.T) {
 	n := New("joe")
 	n.Clock.AddMember("kelvin", 2)
 	n.Clock.AddMember("messi", 4)
-	event := &EventLog{
+	event := &Event{
 		Id:        n.Id,
 		Timestamp: n.Clock.String(),
 		Msg:       "cryptic message",
@@ -71,34 +73,133 @@ func TestEventQueue(t *testing.T) {
 	tt := []struct {
 		name string
 		q    *EventQueue
-		logs []*EventLog
+		logs []*Event
 	}{
 		{
-			name: "queue of length 2",
-			q:    &EventQueue{q: make([]*EventLog, 2)},
-			logs: []*EventLog{&EventLog{Id: "joe"}, &EventLog{Id: "jude"}},
+			name: "append queue on full should fail",
+			q:    &EventQueue{q: make([]*Event, 2)},
+			logs: []*Event{&Event{Id: "joe"}, &Event{Id: "jude"}},
 		},
 		{
-			name: "test reading till end",
-			q:    &EventQueue{q: make([]*EventLog, 4)},
-			logs: []*EventLog{&EventLog{Id: "joe"}, &EventLog{Id: "jude"}},
+			name: "using vacant spaces at the beginning of queue",
+			q:    &EventQueue{q: make([]*Event, 4)},
+			logs: []*Event{&Event{Id: "joe"}, &Event{Id: "jog"}, &Event{Id: "jay"}},
 		},
 	}
 
 	for tn, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
+			// append logs to queue
 			for i, log := range tc.logs {
 				tc.q.Append(log)
 				if i == len(tc.q.q)-1 && tc.q.stop != true {
 					t.Error("Queue must stop accepting elements if its full and complete reads")
 				}
 			}
-			if tn == 0 {
+
+			switch tn {
+			case 0:
 				r := tc.q.Append(tc.logs[0])
-				if !r {
-					t.Error("Can't add to a full queue, read first")
+				if r {
+					t.Error("Queue is full and closed, only reads are allowed.")
 				}
+			case 1:
+				// this queue has length=4, first 3 items are set, idx=3 next=0
+				t.Log(tc.q)
+				r := tc.q.Append(&Event{Id: "jey"}) // idx=3, append and close
+				if !tc.q.stop && !r {
+					t.Error("queue is full and should be closed")
+				}
+
+				_, r = tc.q.Next() // next=1, open
+				t.Log(tc.q)
+				if tc.q.stop && !r {
+					t.Error("queue should be opened now. Vacancy at the begining")
+				}
+
+				t.Log("------------NEXT IN THE LEAD----------------------------")
+				r = tc.q.Append(&Event{Id: "jie"}) // idx=1, close, succesful
+				t.Log("append", tc.q)
+				if !tc.q.stop && !r {
+					t.Error("Vacancy at the begining, append should be succesful")
+				}
+
+				r = tc.q.Append(nil) // idx=1, append rejected
+				t.Log("append", tc.q)
+				if tc.q.stop && r {
+					t.Error("idx == next, this shd have aborted a long time ago")
+				}
+
+				// read the next item in queue
+				_, r = tc.q.Next() // next=2, open
+				t.Log("next", tc.q)
+				if tc.q.stop && r {
+					t.Error("next in the lead reads shd work!")
+				}
+
+				// append should work after a next
+				r = tc.q.Append(nil) // idx=2, still open
+				t.Log("append", tc.q)
+				if !tc.q.stop && !r {
+					t.Error("append after a read, shd work like a charm!")
+				}
+
+				// read next item in queue
+				_, r = tc.q.Next() // next=3, close
+				t.Log("next", tc.q)
+				if tc.q.stop && !r {
+					t.Error("next in the lead, reads shd work!")
+				}
+
+				// appends should work after a read
+				r = tc.q.Append(nil) // idx=3
+				t.Log("append", tc.q)
+				if !tc.q.stop && !r {
+					t.Error("appending after a read, shd work!")
+				}
+
+				r = tc.q.Append(nil) // this shd not work
+				t.Log("append", tc.q)
+				if !tc.q.stop && !r {
+					t.Error("appending at end, idx == next")
+				}
+
+				_, r = tc.q.Next()
+				t.Log("next", tc.q)
+				if tc.q.stop && !r {
+					t.Error("next shd work and queue shd be open for reading")
+				}
+
+				tc.q.Append(nil)
+				t.Log("append", tc.q)
+
+				t.Log("---------------------------------")
+				tc.q.Next()
+				t.Log("next", tc.q)
+
+				tc.q.Append(nil)
+				t.Log("append", tc.q)
 			}
 		})
 	}
+}
+
+func TestNodeIO(t *testing.T) {
+	//str := "[a:1 b:3]"
+	//t.Log(str[1 : len(str)-1])
+	//
+
+	node := New("joe")
+	node.Clock.AddMember("con", 2)
+	node.Clock.AddMember("jon", 3)
+	p, err := node.GenEvent("eat this for breakfast")
+	if err != nil {
+		t.Error("event generation error", err)
+	}
+
+	anodaNode := New("jude")
+	if _, err := anodaNode.Write(p); err != nil {
+		t.Error("Write to Node not succesful, error occured", err)
+	}
+	spew.Dump(anodaNode.History)
 }
