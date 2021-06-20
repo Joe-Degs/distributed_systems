@@ -69,3 +69,23 @@ func (v *Vector) Merge(vc *Vector) {
 		}
 	}
 }
+
+// a vector is causally consisten if T[Pi] == VC(Pi) + 1
+// and T[Pk] <= VC(Pk) for all k != i
+func (v *Vector) IsCausallyConsistentWith(vec *Vector) bool {
+	if v.val[v.id] == vec.val[v.id]+1 && v.HappensBefore(vec) {
+		return true
+	}
+	return false
+}
+
+func (v *Vector) HappensBefore(vec *Vector) bool {
+	for key, val := range v.val {
+		if v.id == key {
+			continue
+		} else if val > vec.val[key] {
+			return false
+		}
+	}
+	return true
+}
