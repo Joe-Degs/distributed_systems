@@ -44,7 +44,7 @@ func TestEventJson(t *testing.T) {
 	}
 
 	// marshal eventlog struct to json.
-	json, err := event.Json()
+	json, err := event.Marshal()
 	if err != nil {
 		t.Error(err)
 	}
@@ -77,12 +77,12 @@ func TestEventQueue(t *testing.T) {
 	}{
 		{
 			name: "append queue on full should fail",
-			q:    &EventQueue{q: make([]*Event, 2)},
+			q:    NewQueue(2),
 			logs: []*Event{&Event{Id: "joe"}, &Event{Id: "jude"}},
 		},
 		{
 			name: "using vacant spaces at the beginning of queue",
-			q:    &EventQueue{q: make([]*Event, 4)},
+			q:    NewQueue(4),
 			logs: []*Event{&Event{Id: "joe"}, &Event{Id: "jog"}, &Event{Id: "jay"}},
 		},
 	}
