@@ -146,6 +146,13 @@ func (eq *EventQueue) Append(e *Event) bool {
 func (eq *EventQueue) reset() {
 	eq.stop = false
 	eq.idx = (eq.idx + 1) % len(eq.q)
+
+	// funny story:
+	//	i was trying to lock this function and defer the unlock
+	//	after execution, fucking naive right?. The methods calling this
+	//	method are already locking the struct before accessing it so
+	//	locking it only creates a deadlock or livelock?. One of them.
+	//	pretty sure its a deadlock.
 }
 
 // Next returns the next item in the queue.
@@ -200,7 +207,6 @@ var ErrEventQueued = errors.New("new event queued for later delivery")
 // Read reads message from underlying buffer and adds it
 // to the log of events it has seen
 func (n *Node) ProcessEvent(event *Event) error {
-
 	// if no event is passed in, read from node's buffer and
 	// unmarshal it.
 	var eventJson string
@@ -234,9 +240,9 @@ func (n *Node) ProcessEvent(event *Event) error {
 		// a better way to do this!.
 		// TODO(joe)
 		go func() {
+			tts := 100
 		LOOP:
 			for {
-				tts := 100
 				select {
 				case <-time.After(time.Millisecond * time.Duration(tts)):
 					stat = n.Queue.Append(event)
