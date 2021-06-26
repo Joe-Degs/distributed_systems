@@ -293,6 +293,7 @@ func (n *Node) Write(p []byte) (l int, err error) {
 			return l, err
 		}
 	}
+
 	n.buf.Reset()
 	return
 }
